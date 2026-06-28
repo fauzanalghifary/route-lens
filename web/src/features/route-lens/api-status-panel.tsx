@@ -1,49 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { JourneyList } from "./journey-list";
-import { getApiHealth, listJourneys, type ApiResult } from "./route-lens.api";
-import type { HealthResponse, JourneySummary } from "./route-lens.types";
-
-type LoadState =
-  | {
-      status: "loading";
-    }
-  | {
-      status: "ready";
-      health: ApiResult<HealthResponse>;
-      journeys: ApiResult<JourneySummary[]>;
-    };
+import {
+  createSampleJourney,
+  getApiHealth,
+  listJourneys,
+  routeLensQueryKeys
+} from "./route-lens.api";
 
 export function ApiStatusPanel() {
-  const [state, setState] = useState<LoadState>({ status: "loading" });
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadApiState() {
-      const [health, journeys] = await Promise.all([
-        getApiHealth(),
-        listJourneys()
-      ]);
-
-      if (isActive) {
-        setState({
-          status: "ready",
-          health,
-          journeys
+  const queryClient = useQueryClient();
+  const healthQuery = useQuery({
+    queryKey: routeLensQueryKeys.health(),
+    queryFn: getApiHealth
+  });
+  const journeysQuery = useQuery({
+    queryKey: routeLensQueryKeys.journeys(),
+    queryFn: listJourneys
+  });
+  const createJourneyMutation = useMutation({
+    mutationFn: createSampleJourney,
+    onSuccess: async (result) => {
+      if (result.ok) {
+        await queryClient.invalidateQueries({
+          queryKey: routeLensQueryKeys.journeys()
         });
       }
     }
+  });
 
-    void loadApiState();
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
-
-  if (state.status === "loading") {
+  if (healthQuery.isLoading || journeysQuery.isLoading) {
     return (
       <section className="api-panel" aria-live="polite">
         <PanelHeader statusLabel="Loading" />
@@ -52,15 +39,23 @@ export function ApiStatusPanel() {
     );
   }
 
-  const isHealthy = state.health.ok;
-  const journeys = state.journeys.ok ? state.journeys.data : [];
+  const health = healthQuery.data;
+  const journeysResult = journeysQuery.data;
+  const isHealthy = health?.ok === true;
+  const journeys = journeysResult?.ok === true ? journeysResult.data : [];
+  const createError =
+    createJourneyMutation.data?.ok === false
+      ? createJourneyMutation.data.message
+      : null;
 
   return (
     <section className="api-panel" aria-live="polite">
       <PanelHeader statusLabel={isHealthy ? "Connected" : "Offline"} />
 
       {!isHealthy ? (
-        <div className="empty-state">{state.health.message}</div>
+        <div className="empty-state">
+          {health?.ok === false ? health.message : "API request failed"}
+        </div>
       ) : journeys.length === 0 ? (
         <div className="empty-state">
           API is reachable. No saved journeys for this anonymous session yet.
@@ -69,9 +64,24 @@ export function ApiStatusPanel() {
         <JourneyList journeys={journeys} />
       )}
 
-      {!state.journeys.ok ? (
-        <div className="empty-state">{state.journeys.message}</div>
+      <div className="panel-actions">
+        <button
+          className="primary-button"
+          disabled={createJourneyMutation.isPending}
+          type="button"
+          onClick={() => createJourneyMutation.mutate()}
+        >
+          {createJourneyMutation.isPending
+            ? "Creating journey..."
+            : "Create sample journey"}
+        </button>
+      </div>
+
+      {journeysResult?.ok === false ? (
+        <div className="empty-state">{journeysResult.message}</div>
       ) : null}
+
+      {createError ? <div className="empty-state">{createError}</div> : null}
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeApiBaseUrl } from "./route-lens.api";
+import { normalizeApiBaseUrl, routeLensQueryKeys } from "./route-lens.api";
 
 describe("normalizeApiBaseUrl", () => {
   it("removes trailing slashes", () => {
@@ -12,5 +12,11 @@ describe("normalizeApiBaseUrl", () => {
     expect(normalizeApiBaseUrl("https://route-lens-api.fly.dev")).toBe(
       "https://route-lens-api.fly.dev"
     );
+  });
+});
+
+describe("routeLensQueryKeys", () => {
+  it("keeps journey query keys stable", () => {
+    expect(routeLensQueryKeys.journeys()).toEqual(["route-lens", "journeys"]);
   });
 });

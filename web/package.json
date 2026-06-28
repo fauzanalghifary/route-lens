@@ -12,6 +12,7 @@
     "prettier:fix": "prettier --write \"src/**/*.{ts,tsx,css}\" \"*.{ts,mjs,json}\""
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.1",
     "next": "^16.1.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"

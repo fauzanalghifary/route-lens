@@ -1,4 +1,13 @@
-import type { HealthResponse, JourneySummary } from "./route-lens.types";
+import type {
+  CreateJourneyRequest,
+  HealthResponse,
+  JourneySummary
+} from "./route-lens.types";
+
+export const routeLensQueryKeys = {
+  health: () => ["route-lens", "health"] as const,
+  journeys: () => ["route-lens", "journeys"] as const
+};
 
 export type ApiResult<T> =
   | {
@@ -28,17 +37,43 @@ export function listJourneys(): Promise<ApiResult<JourneySummary[]>> {
   return fetchJson<JourneySummary[]>("/journeys");
 }
 
-async function fetchJson<T>(path: string): Promise<ApiResult<T>> {
+export function createSampleJourney(): Promise<ApiResult<JourneySummary>> {
+  return fetchJson<JourneySummary>("/journeys", {
+    method: "POST",
+    body: JSON.stringify(sampleJourneyRequest),
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+}
+
+const sampleJourneyRequest: CreateJourneyRequest = {
+  origin: {
+    lat: -6.2088,
+    lng: 106.8456
+  },
+  destination: {
+    lat: -6.1754,
+    lng: 106.8272
+  },
+  style: "travel_poster"
+};
+
+async function fetchJson<T>(
+  path: string,
+  init?: RequestInit
+): Promise<ApiResult<T>> {
   try {
     const response = await fetch(`${getApiBaseUrl()}${path}`, {
       credentials: "include",
-      cache: "no-store"
+      cache: "no-store",
+      ...init
     });
 
     if (!response.ok) {
       return {
         ok: false,
-        message: `API returned ${response.status}`
+        message: await getErrorMessage(response)
       };
     }
 
@@ -54,4 +89,25 @@ async function fetchJson<T>(path: string): Promise<ApiResult<T>> {
       message: error instanceof Error ? error.message : "API request failed"
     };
   }
+}
+
+async function getErrorMessage(response: Response): Promise<string> {
+  const fallback = `API returned ${response.status}`;
+
+  try {
+    const payload: unknown = await response.json();
+
+    if (
+      typeof payload === "object" &&
+      payload !== null &&
+      "message" in payload &&
+      typeof payload.message === "string"
+    ) {
+      return payload.message;
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
 }
