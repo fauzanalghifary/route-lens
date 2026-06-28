@@ -1,13 +1,13 @@
 import "dotenv/config";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
+import { getAllowedWebOrigins } from "./cors/web-origins";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
 
   app.enableCors({
-    origin: webOrigin,
+    origin: getAllowedWebOrigins(),
     credentials: true
   });
 
