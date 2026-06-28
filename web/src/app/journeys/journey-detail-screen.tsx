@@ -1,10 +1,18 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useState, type FormEvent } from "react";
+import {
+  regenerateScene,
+  routeLensQueryKeys,
+  type ApiResult
+} from "@/lib/route-lens/api";
 import type {
   CreateJourneyRequest,
   JourneyDetail,
+  SceneImage,
   JourneyScene
 } from "@/lib/route-lens/types";
 
@@ -143,7 +151,7 @@ export function JourneyDetailScreen({
               </div>
             </div>
 
-            <SceneGallery scenes={journey.scenes} />
+            <SceneGallery journey={journey} />
           </section>
         ) : (
           <LoadingGallery />
@@ -171,55 +179,248 @@ function SummaryRow({ label, value }: SummaryRowProps) {
   );
 }
 
-interface SceneGalleryProps {
-  scenes: JourneyScene[];
+interface RegenerateSceneVariables {
+  prompt: string;
+  sceneId: string;
 }
 
-function SceneGallery({ scenes }: SceneGalleryProps) {
+interface SceneGalleryProps {
+  journey: JourneyDetail;
+}
+
+function SceneGallery({ journey }: SceneGalleryProps) {
+  const queryClient = useQueryClient();
+  const regenerateMutation = useMutation({
+    mutationFn: ({ prompt, sceneId }: RegenerateSceneVariables) =>
+      regenerateScene(journey.id, sceneId, { prompt }),
+    onSuccess: (result) => {
+      if (!result.ok) {
+        return;
+      }
+
+      queryClient.setQueryData(
+        routeLensQueryKeys.journey(result.data.id),
+        result
+      );
+      void queryClient.invalidateQueries({
+        queryKey: routeLensQueryKeys.journeys()
+      });
+    }
+  });
+
+  const regenerateSceneVersion = (
+    sceneId: string,
+    prompt: string
+  ): Promise<ApiResult<JourneyDetail>> =>
+    regenerateMutation.mutateAsync({ sceneId, prompt });
+
   return (
     <div className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
-      {scenes
+      {journey.scenes
         .toSorted((left, right) => left.order - right.order)
         .map((scene) => (
-          <article
-            className="grid min-h-0 gap-3 border border-[#17211c21] bg-[#fffdf6] p-3"
+          <SceneCard
+            isRegenerationBusy={regenerateMutation.isPending}
             key={scene.id}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="m-0 font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
-                  Scene {scene.order}
-                </p>
-                <h2 className="m-0 mt-1 text-[1.18rem] leading-[1.05] font-medium text-[#17211c]">
-                  {formatSceneLabel(scene.label)}
-                </h2>
-              </div>
-              <span className="font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
-                {scene.activeImage?.status ?? "pending"}
-              </span>
-            </div>
-
-            <div className="aspect-[4/3] overflow-hidden bg-[#d9e6df]">
-              {scene.activeImage?.imageUrl ? (
-                <img
-                  alt={`${formatSceneLabel(scene.label)} generated scene`}
-                  className="h-full w-full object-cover"
-                  src={scene.activeImage.imageUrl}
-                />
-              ) : (
-                <div className="grid h-full place-items-center px-4 text-center font-mono text-[0.72rem] font-bold text-[#405047] uppercase">
-                  Image pending
-                </div>
-              )}
-            </div>
-
-            {scene.activeImage?.prompt ? (
-              <p className="m-0 line-clamp-4 text-[0.86rem] leading-[1.45] text-[#405047]">
-                {scene.activeImage.prompt}
-              </p>
-            ) : null}
-          </article>
+            scene={scene}
+            onRegenerateScene={regenerateSceneVersion}
+          />
         ))}
+    </div>
+  );
+}
+
+interface SceneCardProps {
+  isRegenerationBusy: boolean;
+  scene: JourneyScene;
+  onRegenerateScene: (
+    sceneId: string,
+    prompt: string
+  ) => Promise<ApiResult<JourneyDetail>>;
+}
+
+function SceneCard({
+  isRegenerationBusy,
+  onRegenerateScene,
+  scene
+}: SceneCardProps) {
+  const activePrompt = scene.activeImage?.prompt ?? "";
+  const [draftPrompt, setDraftPrompt] = useState(activePrompt);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const startEditing = () => {
+    setDraftPrompt(activePrompt);
+    setErrorMessage(null);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setDraftPrompt(activePrompt);
+    setErrorMessage(null);
+    setIsEditing(false);
+  };
+
+  const submitRegeneration = async (
+    event: FormEvent<HTMLFormElement>
+  ): Promise<void> => {
+    event.preventDefault();
+
+    const prompt = draftPrompt.trim();
+
+    if (!prompt) {
+      setErrorMessage("Prompt must not be empty.");
+      return;
+    }
+
+    setErrorMessage(null);
+    const result = await onRegenerateScene(scene.id, prompt);
+
+    if (result.ok) {
+      setIsEditing(false);
+      return;
+    }
+
+    setErrorMessage(result.message);
+  };
+
+  return (
+    <article className="grid min-h-0 gap-3 border border-[#17211c21] bg-[#fffdf6] p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="m-0 font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
+            Scene {scene.order}
+          </p>
+          <h2 className="m-0 mt-1 text-[1.18rem] leading-[1.05] font-medium text-[#17211c]">
+            {formatSceneLabel(scene.label)}
+          </h2>
+        </div>
+        <span className="shrink-0 border border-[#216c2f40] bg-[#eef4df] px-2 py-1 font-mono text-[0.62rem] font-bold text-[#216c2f] uppercase">
+          {scene.activeImage
+            ? `v${scene.activeImage.version} active`
+            : "pending"}
+        </span>
+      </div>
+
+      <div className="aspect-[4/3] overflow-hidden bg-[#d9e6df]">
+        {scene.activeImage?.imageUrl ? (
+          <img
+            alt={`${formatSceneLabel(scene.label)} generated scene`}
+            className="h-full w-full object-cover"
+            src={scene.activeImage.imageUrl}
+          />
+        ) : (
+          <div className="grid h-full place-items-center px-4 text-center font-mono text-[0.72rem] font-bold text-[#405047] uppercase">
+            Image pending
+          </div>
+        )}
+      </div>
+
+      {isEditing ? (
+        <form
+          className="grid gap-2 border border-[#17211c21] bg-[#f7f3e8] p-3"
+          onSubmit={(event) => {
+            void submitRegeneration(event);
+          }}
+        >
+          <label className="grid gap-2">
+            <span className="font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
+              Prompt
+            </span>
+            <textarea
+              className="min-h-[132px] resize-y border border-[#17211c29] bg-[#fffdf6] p-3 text-[0.86rem] leading-[1.45] text-[#17211c] outline-none focus:border-[#216c2f]"
+              value={draftPrompt}
+              onChange={(event) => setDraftPrompt(event.target.value)}
+            />
+          </label>
+
+          {errorMessage ? (
+            <p className="m-0 text-sm leading-[1.4] text-[#9a412a]">
+              {errorMessage}
+            </p>
+          ) : null}
+
+          <div className="grid grid-cols-[92px_1fr] gap-2">
+            <button
+              className="min-h-10 border border-[#17211c29] bg-[#fffdf6] px-3 font-mono text-[0.68rem] font-bold text-[#24352b] uppercase disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isRegenerationBusy}
+              type="button"
+              onClick={cancelEditing}
+            >
+              Cancel
+            </button>
+            <button
+              className="min-h-10 border border-[#216c2f] bg-[#eef4df] px-3 font-mono text-[0.68rem] font-bold text-[#216c2f] uppercase disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isRegenerationBusy || !draftPrompt.trim()}
+              type="submit"
+            >
+              {isRegenerationBusy ? "Generating..." : "Generate new version"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="grid gap-2">
+          <p className="m-0 line-clamp-4 text-[0.86rem] leading-[1.45] text-[#405047]">
+            {activePrompt || "Prompt pending."}
+          </p>
+          <button
+            className="justify-self-start border border-[#216c2f40] bg-[#eef4df] px-3 py-2 font-mono text-[0.68rem] font-bold text-[#216c2f] uppercase disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isRegenerationBusy || !scene.activeImage}
+            type="button"
+            onClick={startEditing}
+          >
+            Regenerate
+          </button>
+        </div>
+      )}
+
+      <SceneImageHistory
+        activeImageId={scene.activeImage?.id ?? null}
+        images={scene.images}
+      />
+    </article>
+  );
+}
+
+interface SceneImageHistoryProps {
+  activeImageId: string | null;
+  images: SceneImage[];
+}
+
+function SceneImageHistory({ activeImageId, images }: SceneImageHistoryProps) {
+  return (
+    <div className="grid gap-2 border-t border-[#17211c14] pt-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
+          Image history
+        </span>
+        <span className="font-mono text-[0.64rem] font-bold text-[#405047] uppercase">
+          {images.length} {images.length === 1 ? "version" : "versions"}
+        </span>
+      </div>
+
+      <div className="grid gap-2">
+        {images
+          .toSorted((left, right) => right.version - left.version)
+          .map((image) => (
+            <div
+              className="grid gap-1 border border-[#17211c14] bg-[#fffdf6] p-2"
+              key={image.id}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[0.64rem] font-bold text-[#24352b] uppercase">
+                  Version {image.version}
+                </span>
+                <span className="font-mono text-[0.6rem] font-bold text-[#5a6a60] uppercase">
+                  {image.id === activeImageId ? "active" : image.status}
+                </span>
+              </div>
+              <p className="m-0 line-clamp-2 text-[0.76rem] leading-[1.35] text-[#405047]">
+                {image.prompt}
+              </p>
+            </div>
+          ))}
+      </div>
     </div>
   );
 }
