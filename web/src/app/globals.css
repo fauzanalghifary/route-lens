@@ -17,3 +17,7 @@ body {
   margin: 0;
   background: #d9e6df;
 }
+
+button:not(:disabled) {
+  cursor: pointer;
+}

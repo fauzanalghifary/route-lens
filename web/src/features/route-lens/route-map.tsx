@@ -212,14 +212,19 @@ function createRoutePreview(
 }
 
 function createMarkerElement(variant: "destination" | "origin") {
-  const element = document.createElement("div");
-  element.className =
-    variant === "origin" ? originMarkerClassName : destinationMarkerClassName;
-  element.setAttribute(
+  const wrapper = document.createElement("div");
+  const pin = document.createElement("div");
+
+  wrapper.className = markerWrapperClassName;
+  wrapper.setAttribute(
     "aria-label",
     variant === "origin" ? "Origin" : "Destination"
   );
-  return element;
+  pin.className =
+    variant === "origin" ? originMarkerClassName : destinationMarkerClassName;
+  wrapper.append(pin);
+
+  return wrapper;
 }
 
 function removeMarker(markerRef: MutableRefObject<maplibregl.Marker | null>) {
@@ -227,9 +232,12 @@ function removeMarker(markerRef: MutableRefObject<maplibregl.Marker | null>) {
   markerRef.current = null;
 }
 
-const markerBaseClassName =
-  "h-[22px] w-[22px] rotate-[-45deg] rounded-[999px_999px_999px_2px] border-3 border-[#fffdf6] shadow-[0_10px_24px_rgba(32,35,31,0.3)]";
+const markerWrapperClassName =
+  "flex h-8 w-8 items-end justify-center pointer-events-none";
 
-const originMarkerClassName = `${markerBaseClassName} bg-[#315f54]`;
+const markerPinClassName =
+  "h-[22px] w-[22px] origin-center rotate-[-45deg] rounded-[999px_999px_999px_3px] border-[3px] border-[#fffdf6] shadow-[0_10px_24px_rgba(32,35,31,0.3)]";
 
-const destinationMarkerClassName = `${markerBaseClassName} bg-[#cf624a]`;
+const originMarkerClassName = `${markerPinClassName} bg-[#315f54]`;
+
+const destinationMarkerClassName = `${markerPinClassName} bg-[#cf624a]`;
