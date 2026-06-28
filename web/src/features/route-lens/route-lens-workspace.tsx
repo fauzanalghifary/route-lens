@@ -23,19 +23,20 @@ export function RouteLensWorkspace() {
     destination: null,
     origin: null
   });
+  const [isIntroOpen, setIsIntroOpen] = useState(true);
   const [style, setStyle] = useState<RouteStyle>("cinematic");
   const isReady = Boolean(selection.origin && selection.destination);
 
-  const activeStep = useMemo(() => {
+  const instructionLabel = useMemo(() => {
     if (!selection.origin) {
-      return "Origin";
+      return "Pick origin";
     }
 
     if (!selection.destination) {
-      return "Destination";
+      return "Pick destination";
     }
 
-    return "Ready";
+    return "Review journey";
   }, [selection.destination, selection.origin]);
 
   const pickCoordinate = useCallback((coordinate: Coordinate) => {
@@ -66,33 +67,64 @@ export function RouteLensWorkspace() {
   }, []);
 
   return (
-    <section className="route-workbench" aria-label="Route builder">
-      <div className="route-workbench-toolbar">
+    <section className="route-workspace" aria-label="Route builder">
+      <RouteMap
+        destination={selection.destination}
+        origin={selection.origin}
+        onPick={pickCoordinate}
+      />
+
+      <header className="map-brand">
+        <span className="brand-mark">🌍</span>
         <div>
-          <p className="eyebrow">Route builder</p>
-          <h2>Pick two points</h2>
+          <strong>RouteLens</strong>
+          <span>AI route scenes</span>
         </div>
-        <div className="selection-status" aria-label="Selection status">
-          <span
-            className={selection.origin ? "status-dot active" : "status-dot"}
-          />
-          <span
-            className={
-              selection.destination ? "status-dot active" : "status-dot"
-            }
-          />
-          <span>{activeStep}</span>
-        </div>
+      </header>
+
+      <div className="map-instruction" aria-live="polite">
+        <span
+          className={selection.origin ? "status-dot active" : "status-dot"}
+        />
+        <span
+          className={selection.destination ? "status-dot active" : "status-dot"}
+        />
+        <strong>{instructionLabel}</strong>
       </div>
 
-      <div className="route-workbench-grid">
-        <RouteMap
-          destination={selection.destination}
-          origin={selection.origin}
-          onPick={pickCoordinate}
-        />
+      {isIntroOpen ? (
+        <div className="intro-modal-backdrop" role="presentation">
+          <section
+            className="intro-modal"
+            aria-labelledby="route-lens-intro-title"
+            role="dialog"
+          >
+            <p className="eyebrow">RouteLens</p>
+            <h1 id="route-lens-intro-title">
+              Turn a route into visual scenes.
+            </h1>
+            <p>
+              Pick an origin and destination on the map. RouteLens creates three
+              AI-generated scenes inspired by the geography along your route.
+            </p>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => setIsIntroOpen(false)}
+            >
+              Start mapping
+            </button>
+          </section>
+        </div>
+      ) : null}
 
+      {isReady ? (
         <aside className="confirmation-panel" aria-label="Journey confirmation">
+          <div className="confirmation-heading">
+            <p className="eyebrow">Review route</p>
+            <h2>Ready to generate</h2>
+          </div>
+
           <div className="confirmation-section">
             <span className="panel-label">Origin</span>
             <strong>
@@ -153,7 +185,7 @@ export function RouteLensWorkspace() {
             </button>
           </div>
         </aside>
-      </div>
+      ) : null}
     </section>
   );
 }
