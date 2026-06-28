@@ -11,7 +11,7 @@ interface RouteMapProps {
   onPick: (coordinate: Coordinate) => void;
 }
 
-const jakartaCenter: [number, number] = [106.8456, -6.2088];
+const worldCenter: [number, number] = [0, 20];
 
 const routeSourceId = "route-preview";
 
@@ -58,8 +58,8 @@ export function RouteMap({ destination, origin, onPick }: RouteMapProps) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: mapStyle,
-      center: jakartaCenter,
-      zoom: 11,
+      center: worldCenter,
+      zoom: 1.5,
       attributionControl: {
         compact: true
       }
