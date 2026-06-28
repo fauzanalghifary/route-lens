@@ -1,20 +1,22 @@
 import { Body, Controller, Param, Post, Req } from "@nestjs/common";
-import type { SceneResponse } from "../journeys/journeys.types";
+import type { JourneyResponse } from "../journeys/journeys.types";
 import type { RequestWithSession } from "../session/request-with-session";
 import { ScenesService } from "./scenes.service";
 
-@Controller("scenes")
+@Controller("journeys/:journeyId/scenes")
 export class ScenesController {
   constructor(private readonly scenesService: ScenesService) {}
 
-  @Post(":id/regenerate")
+  @Post(":sceneId/regenerate")
   regenerateScene(
     @Req() request: RequestWithSession,
-    @Param("id") sceneId: string,
+    @Param("journeyId") journeyId: string,
+    @Param("sceneId") sceneId: string,
     @Body() body: unknown
-  ): Promise<SceneResponse> {
+  ): Promise<JourneyResponse> {
     return this.scenesService.regenerateScene(
       request.routeLensSessionId,
+      journeyId,
       sceneId,
       body
     );

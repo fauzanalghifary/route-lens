@@ -1,7 +1,8 @@
 import type {
   CreateJourneyRequest,
   JourneyDetail,
-  JourneySummary
+  JourneySummary,
+  RegenerateSceneRequest
 } from "./types";
 
 export const routeLensQueryKeys = {
@@ -49,6 +50,23 @@ export function createJourney(
       "Content-Type": "application/json"
     }
   });
+}
+
+export function regenerateScene(
+  journeyId: string,
+  sceneId: string,
+  request: RegenerateSceneRequest
+): Promise<ApiResult<JourneyDetail>> {
+  return fetchJson<JourneyDetail>(
+    `/journeys/${journeyId}/scenes/${sceneId}/regenerate`,
+    {
+      method: "POST",
+      body: JSON.stringify(request),
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
 }
 
 async function fetchJson<T>(

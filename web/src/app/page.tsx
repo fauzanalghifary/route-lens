@@ -210,7 +210,9 @@ export default function Home() {
             aria-label="Journey confirmation"
           >
             <div className="grid">
-              <p className={`${eyebrowClassName} -mb-2.5! text-[1.44rem]`}>Review route</p>
+              <p className={`${eyebrowClassName} -mb-2.5! text-[1.44rem]`}>
+                Review route
+              </p>
             </div>
 
             <div className="grid gap-3">

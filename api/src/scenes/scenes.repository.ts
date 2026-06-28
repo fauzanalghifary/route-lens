@@ -1,9 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { SceneImageStatus } from "../generated/prisma/client";
+import { JOURNEY_INCLUDE, JourneyWithScenes } from "../journeys/journeys.prisma";
 import { PrismaService } from "../prisma/prisma.service";
-import { SCENE_INCLUDE, SceneWithImages } from "./scenes.prisma";
 
 interface RegenerateSceneImageInput {
+  journeyId: string;
   sceneId: string;
   sessionId: string;
   prompt: string;
@@ -14,14 +15,16 @@ export class ScenesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async regenerateSceneImage({
+    journeyId,
     sceneId,
     sessionId,
     prompt
-  }: RegenerateSceneImageInput): Promise<SceneWithImages | null> {
+  }: RegenerateSceneImageInput): Promise<JourneyWithScenes | null> {
     return this.prisma.$transaction(async (tx) => {
       const scene = await tx.scene.findFirst({
         where: {
           id: sceneId,
+          journeyId,
           journey: {
             sessionId
           }
@@ -55,14 +58,20 @@ export class ScenesRepository {
         }
       });
 
-      return tx.scene.update({
+      await tx.scene.update({
         where: {
           id: scene.id
         },
         data: {
           activeImageId: image.id
+        }
+      });
+
+      return tx.journey.findUniqueOrThrow({
+        where: {
+          id: journeyId
         },
-        include: SCENE_INCLUDE
+        include: JOURNEY_INCLUDE
       });
     });
   }

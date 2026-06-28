@@ -16,6 +16,10 @@ export interface CreateJourneyRequest {
   style: RouteStyle;
 }
 
+export interface RegenerateSceneRequest {
+  prompt: string;
+}
+
 export interface JourneySummary {
   id: string;
   status: string;

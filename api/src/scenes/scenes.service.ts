@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import type { SceneResponse } from "../journeys/journeys.types";
+import type { JourneyResponse } from "../journeys/journeys.types";
+import { toJourneyResponse } from "../journeys/journey-response.mapper";
 import { parseRegenerateSceneInput } from "./scene-validation";
-import { toRegeneratedSceneResponse } from "./scene-response.mapper";
 import { ScenesRepository } from "./scenes.repository";
 
 @Injectable()
@@ -10,20 +10,22 @@ export class ScenesService {
 
   async regenerateScene(
     sessionId: string,
+    journeyId: string,
     sceneId: string,
     body: unknown
-  ): Promise<SceneResponse> {
+  ): Promise<JourneyResponse> {
     const input = parseRegenerateSceneInput(body);
-    const scene = await this.scenesRepository.regenerateSceneImage({
+    const journey = await this.scenesRepository.regenerateSceneImage({
+      journeyId,
       sceneId,
       sessionId,
       prompt: input.prompt
     });
 
-    if (!scene) {
+    if (!journey) {
       throw new NotFoundException("Scene not found");
     }
 
-    return toRegeneratedSceneResponse(scene);
+    return toJourneyResponse(journey);
   }
 }
