@@ -10,6 +10,7 @@ COPY web/package.json ./web/package.json
 RUN pnpm install --frozen-lockfile --filter @route-lens/web...
 
 COPY web ./web
+RUN mkdir -p web/public
 
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
