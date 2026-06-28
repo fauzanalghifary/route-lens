@@ -1,4 +1,5 @@
 import { ApiStatusPanel } from "./api-status-panel";
+import { RouteLensWorkspace } from "./route-lens-workspace";
 
 export function RouteLensScreen() {
   return (
@@ -11,6 +12,7 @@ export function RouteLensScreen() {
         </p>
       </section>
 
+      <RouteLensWorkspace />
       <ApiStatusPanel />
     </main>
   );
