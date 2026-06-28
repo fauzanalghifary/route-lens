@@ -12,6 +12,10 @@ RUN pnpm install --frozen-lockfile --filter @route-lens/api...
 
 COPY api ./api
 
+# prisma.config.ts evaluates env("DATABASE_URL") at load time; satisfy it with a
+# throwaway value so `prisma generate` (no DB connection needed) can run.
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
+
 RUN pnpm --filter @route-lens/api prisma:generate
 RUN pnpm --filter @route-lens/api build
 
