@@ -235,11 +235,7 @@ function RegenerateJourneyPanel({
     >
       <div className="grid gap-1">
         <p className="m-0 font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
-          Regenerate latest generation
-        </p>
-        <p className="m-0 max-w-[72ch] text-[0.9rem] leading-[1.45] text-[#405047]">
-          Add a short direction. RouteLens keeps the original scene prompts and
-          appends your note to all three scenes.
+          Regenerate image
         </p>
       </div>
 
