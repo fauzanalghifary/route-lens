@@ -17,12 +17,14 @@ export class SessionMiddleware implements NestMiddleware {
 
     (request as RequestWithSession).routeLensSessionId = sessionId;
 
+    const isProduction = process.env.NODE_ENV === "production";
+
     response.cookie(SESSION_COOKIE_NAME, sessionId, {
       httpOnly: true,
       maxAge: SESSION_COOKIE_MAX_AGE_MS,
       path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production"
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction
     });
 
     next();
