@@ -46,7 +46,7 @@ export function toJourneyResponse(journey: JourneyWithScenes): JourneyResponse {
   };
 }
 
-function toSceneResponse(
+export function toSceneResponse(
   scene: JourneyWithScenes["scenes"][number]
 ): SceneResponse {
   return {
@@ -63,7 +63,7 @@ function toSceneResponse(
   };
 }
 
-function toSceneImageResponse(
+export function toSceneImageResponse(
   image: JourneyWithScenes["scenes"][number]["images"][number]
 ): SceneImageResponse {
   return {
