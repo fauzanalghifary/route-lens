@@ -61,6 +61,12 @@ Run the API locally:
 pnpm api:start:dev
 ```
 
+Run the API and web app together:
+
+```bash
+pnpm dev
+```
+
 Build the API:
 
 ```bash

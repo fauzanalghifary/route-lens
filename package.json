@@ -4,12 +4,22 @@
   "private": true,
   "packageManager": "pnpm@11.7.0",
   "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names api,web --prefix-colors cyan,green \"pnpm api:start:dev\" \"pnpm web:dev\"",
     "api:build": "pnpm --filter @route-lens/api build",
     "api:start:dev": "pnpm --filter @route-lens/api start:dev",
     "api:lint": "pnpm --filter @route-lens/api lint",
     "api:test": "pnpm --filter @route-lens/api test",
     "api:prisma:generate": "pnpm --filter @route-lens/api prisma:generate",
     "api:prisma:migrate": "pnpm --filter @route-lens/api prisma:migrate",
-    "api:prisma:validate": "pnpm --filter @route-lens/api prisma:validate"
+    "api:prisma:validate": "pnpm --filter @route-lens/api prisma:validate",
+    "web:build": "pnpm --filter @route-lens/web build",
+    "web:dev": "pnpm --filter @route-lens/web dev",
+    "web:lint": "pnpm --filter @route-lens/web lint",
+    "web:prettier:fix": "pnpm --filter @route-lens/web prettier:fix",
+    "web:test": "pnpm --filter @route-lens/web test",
+    "web:typecheck": "pnpm --filter @route-lens/web typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }
