@@ -192,13 +192,6 @@ export function RouteLensWorkspace() {
           </div>
 
           <div className="grid gap-[7px]">
-            <span className={panelLabelClassName}>Scenes</span>
-            <strong className="text-base leading-[1.45] font-medium text-[#17211c]">
-              {SCENE_COUNT} fixed scenes
-            </strong>
-          </div>
-
-          <div className="grid gap-[7px]">
             <span className={panelLabelClassName}>Style</span>
             <div className="grid grid-cols-1 gap-2">
               {ROUTE_STYLE_PRESETS.map((preset) => (
