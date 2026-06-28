@@ -7,6 +7,7 @@
     "api:build": "pnpm --filter @route-lens/api build",
     "api:start:dev": "pnpm --filter @route-lens/api start:dev",
     "api:lint": "pnpm --filter @route-lens/api lint",
+    "api:test": "pnpm --filter @route-lens/api test",
     "api:prisma:generate": "pnpm --filter @route-lens/api prisma:generate",
     "api:prisma:migrate": "pnpm --filter @route-lens/api prisma:migrate",
     "api:prisma:validate": "pnpm --filter @route-lens/api prisma:validate"

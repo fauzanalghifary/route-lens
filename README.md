@@ -67,6 +67,12 @@ Build the API:
 pnpm api:build
 ```
 
+Run API unit tests:
+
+```bash
+pnpm api:test
+```
+
 Validate the Prisma schema:
 
 ```bash
