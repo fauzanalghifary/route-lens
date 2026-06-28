@@ -38,6 +38,8 @@ interface RouteSelection {
   origin: Coordinate | null;
 }
 
+let hasDismissedIntro = false;
+
 export default function Home() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -45,7 +47,7 @@ export default function Home() {
     destination: null,
     origin: null
   });
-  const [isIntroOpen, setIsIntroOpen] = useState(true);
+  const [isIntroOpen, setIsIntroOpen] = useState(!hasDismissedIntro);
   const [createJourneyError, setCreateJourneyError] = useState<string | null>(
     null
   );
@@ -207,7 +209,10 @@ export default function Home() {
               <button
                 className={`${primaryButtonClassName} mt-[22px]`}
                 type="button"
-                onClick={() => setIsIntroOpen(false)}
+                onClick={() => {
+                  hasDismissedIntro = true;
+                  setIsIntroOpen(false);
+                }}
               >
                 Start mapping
               </button>
