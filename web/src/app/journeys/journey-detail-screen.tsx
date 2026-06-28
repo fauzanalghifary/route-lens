@@ -5,11 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { regenerateJourney, routeLensQueryKeys } from "@/lib/route-lens/api";
-import type {
-  CreateJourneyRequest,
-  JourneyDetail,
-  JourneyScene
-} from "@/lib/route-lens/types";
+import type { JourneyDetail, JourneyScene } from "@/lib/route-lens/types";
 
 const JourneyStaticMap = dynamic(
   () => import("./journey-static-map").then((mod) => mod.JourneyStaticMap),
@@ -26,7 +22,6 @@ const JourneyStaticMap = dynamic(
 interface JourneyDetailScreenProps {
   errorMessage?: string | null;
   journey: JourneyDetail | null;
-  pendingRequest?: CreateJourneyRequest | null;
   status: "error" | "loading" | "ready";
 }
 
@@ -358,11 +353,4 @@ interface CoordinateLike {
 
 function formatSceneLabel(label: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function formatStyle(style: string): string {
-  return style
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }

@@ -1,10 +1,11 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-import { savePendingJourneyRequest } from "./pending-journey-storage";
+import { createJourney, routeLensQueryKeys } from "@/lib/route-lens/api";
 import { ROUTE_STYLE_PRESETS } from "@/lib/route-lens/constants";
 import type { Coordinate, RouteStyle } from "@/lib/route-lens/types";
 
@@ -39,6 +40,7 @@ interface RouteSelection {
 
 export default function Home() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [selection, setSelection] = useState<RouteSelection>({
     destination: null,
     origin: null
@@ -49,6 +51,26 @@ export default function Home() {
   );
   const [style, setStyle] = useState<RouteStyle>("cinematic");
   const isReady = Boolean(selection.origin && selection.destination);
+
+  const createJourneyMutation = useMutation({
+    mutationFn: createJourney,
+    onSuccess: (result) => {
+      if (!result.ok) {
+        setCreateJourneyError(result.message);
+        return;
+      }
+
+      queryClient.setQueryData(
+        routeLensQueryKeys.journey(result.data.id),
+        result
+      );
+      void queryClient.invalidateQueries({
+        queryKey: routeLensQueryKeys.journeys()
+      });
+      router.replace(`/journeys/${result.data.id}`);
+    }
+  });
+  const isCreating = createJourneyMutation.isPending;
 
   const instructionLabel = useMemo(() => {
     if (!selection.origin) {
@@ -102,20 +124,9 @@ export default function Home() {
       return;
     }
 
-    try {
-      const draftId = savePendingJourneyRequest({
-        origin,
-        destination,
-        style
-      });
-
-      router.push(`/journeys/new?draft=${draftId}`);
-    } catch {
-      setCreateJourneyError(
-        "Could not start journey generation in this browser."
-      );
-    }
-  }, [router, selection, style]);
+    setCreateJourneyError(null);
+    createJourneyMutation.mutate({ origin, destination, style });
+  }, [createJourneyMutation, selection, style]);
 
   return (
     <main className="h-screen min-h-screen w-screen overflow-hidden bg-[#f4f1e8] text-[#17211c]">
@@ -225,9 +236,10 @@ export default function Home() {
                     key={preset.value}
                     className={
                       preset.value === style
-                        ? "min-h-[54px] border-2 border-[#216c2f] bg-[#eef4df] px-4 text-left font-mono text-[0.78rem] font-bold text-[#216c2f] uppercase shadow-[0_12px_24px_-18px_rgba(33,108,47,0.55)]"
-                        : "min-h-[54px] border border-[#17211c21] bg-[#fffdf6] px-4 text-left font-mono text-[0.78rem] font-bold text-[#24352b] uppercase hover:border-[#17211c66] hover:bg-[#f7f3e8]"
+                        ? "min-h-[54px] border-2 border-[#216c2f] bg-[#eef4df] px-4 text-left font-mono text-[0.78rem] font-bold text-[#216c2f] uppercase shadow-[0_12px_24px_-18px_rgba(33,108,47,0.55)] disabled:cursor-not-allowed disabled:opacity-60"
+                        : "min-h-[54px] border border-[#17211c21] bg-[#fffdf6] px-4 text-left font-mono text-[0.78rem] font-bold text-[#24352b] uppercase hover:border-[#17211c66] hover:bg-[#f7f3e8] disabled:cursor-not-allowed disabled:opacity-60"
                     }
+                    disabled={isCreating}
                     type="button"
                     onClick={() => handleStyleChange(preset.value)}
                   >
@@ -259,19 +271,27 @@ export default function Home() {
 
             <div className="mt-auto grid grid-cols-[104px_1fr] gap-2.5 max-sm:grid-cols-1">
               <button
-                className={secondaryButtonClassName}
+                className={`${secondaryButtonClassName} disabled:cursor-not-allowed disabled:opacity-60`}
+                disabled={isCreating}
                 type="button"
                 onClick={resetSelection}
               >
                 Reset
               </button>
               <button
-                className={primaryButtonClassName}
-                disabled={!isReady}
+                className={`${primaryButtonClassName} inline-flex items-center justify-center gap-2`}
+                disabled={!isReady || isCreating}
                 type="button"
                 onClick={generateJourney}
               >
-                Generate journey
+                {isCreating ? (
+                  <>
+                    <span className="h-[14px] w-[14px] animate-spin rounded-full border-2 border-[#fffdf640] border-t-[#fffdf6]" />
+                    Generating…
+                  </>
+                ) : (
+                  "Generate journey"
+                )}
               </button>
             </div>
           </aside>
