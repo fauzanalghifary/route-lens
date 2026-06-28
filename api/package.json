@@ -17,6 +17,7 @@
     "@nestjs/platform-express": "^11.1.6",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "express": "^5.2.1",
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@eslint/js": "^9.31.0",
     "@nestjs/cli": "^11.0.10",
+    "@types/express": "^5.0.6",
     "@types/node": "^24.0.15",
     "@types/pg": "^8.20.0",
     "dotenv": "^17.4.2",

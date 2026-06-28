@@ -15,12 +15,12 @@ Current slice:
 - `docs/system-design.md` documents the product, architecture, API plan, data model, and trade-offs.
 - `api/` contains the initial NestJS backend scaffold.
 - `api/prisma/schema.prisma` defines the first database model for journeys, scenes, and scene image history.
+- the API issues an anonymous `route_lens_session` cookie for user separation.
 
 Not implemented yet:
 
 - Next.js frontend
 - Prisma migrations and database access
-- anonymous sessions
 - journey APIs
 - Google Routes and Geocoding
 - Gemini image generation
