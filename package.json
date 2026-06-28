@@ -1,0 +1,11 @@
+{
+  "name": "route-lens",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "api:build": "pnpm --filter @route-lens/api build",
+    "api:start:dev": "pnpm --filter @route-lens/api start:dev",
+    "api:lint": "pnpm --filter @route-lens/api lint"
+  }
+}
