@@ -3,12 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
-import {
-  regenerateScene,
-  routeLensQueryKeys,
-  type ApiResult
-} from "@/lib/route-lens/api";
+import { regenerateJourney, routeLensQueryKeys } from "@/lib/route-lens/api";
 import type {
   CreateJourneyRequest,
   JourneyDetail,
@@ -42,6 +37,27 @@ export function JourneyDetailScreen({
   status
 }: JourneyDetailScreenProps) {
   const isLoading = status === "loading";
+  const queryClient = useQueryClient();
+  const regenerateJourneyMutation = useMutation({
+    mutationFn: (journeyId: string) => regenerateJourney(journeyId),
+    onSuccess: (result) => {
+      if (!result.ok) {
+        return;
+      }
+
+      queryClient.setQueryData(
+        routeLensQueryKeys.journey(result.data.id),
+        result
+      );
+      void queryClient.invalidateQueries({
+        queryKey: routeLensQueryKeys.journeys()
+      });
+    }
+  });
+  const regenerationError =
+    regenerateJourneyMutation.data?.ok === false
+      ? regenerateJourneyMutation.data.message
+      : null;
 
   return (
     <main className="min-h-screen bg-[#f4f1e8] text-[#17211c]">
@@ -119,6 +135,18 @@ export function JourneyDetailScreen({
                   : "Starting"
               }
             />
+            {journey ? (
+              <button
+                className="mt-1 min-h-10 border border-[#216c2f] bg-[#eef4df] px-3 font-mono text-[0.68rem] font-bold text-[#216c2f] uppercase disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={regenerateJourneyMutation.isPending}
+                type="button"
+                onClick={() => regenerateJourneyMutation.mutate(journey.id)}
+              >
+                {regenerateJourneyMutation.isPending
+                  ? "Regenerating..."
+                  : "Regenerate all scenes"}
+              </button>
+            ) : null}
           </aside>
         </section>
 
@@ -128,9 +156,15 @@ export function JourneyDetailScreen({
           </section>
         ) : null}
 
+        {regenerationError ? (
+          <section className="border border-[#a23a2540] bg-[#f7e3dc] p-4 text-[#9a412a]">
+            {regenerationError}
+          </section>
+        ) : null}
+
         {journey ? (
-          <section className="grid grid-cols-[360px_minmax(0,1fr)] gap-6 max-lg:grid-cols-1">
-            <div className="grid content-start gap-4">
+          <section className="grid gap-6">
+            <div className="grid grid-cols-[420px_minmax(0,1fr)] gap-6 max-lg:grid-cols-1">
               <JourneyStaticMap journey={journey} />
               <div className="grid gap-2 border border-[#17211c21] bg-[#fffdf6] p-4">
                 {journey.scenes
@@ -151,7 +185,7 @@ export function JourneyDetailScreen({
               </div>
             </div>
 
-            <SceneGallery journey={journey} />
+            <SceneGallery scenes={journey.scenes} />
           </section>
         ) : (
           <LoadingGallery />
@@ -179,110 +213,28 @@ function SummaryRow({ label, value }: SummaryRowProps) {
   );
 }
 
-interface RegenerateSceneVariables {
-  prompt: string;
-  sceneId: string;
-}
-
 interface SceneGalleryProps {
-  journey: JourneyDetail;
+  scenes: JourneyScene[];
 }
 
-function SceneGallery({ journey }: SceneGalleryProps) {
-  const queryClient = useQueryClient();
-  const regenerateMutation = useMutation({
-    mutationFn: ({ prompt, sceneId }: RegenerateSceneVariables) =>
-      regenerateScene(journey.id, sceneId, { prompt }),
-    onSuccess: (result) => {
-      if (!result.ok) {
-        return;
-      }
-
-      queryClient.setQueryData(
-        routeLensQueryKeys.journey(result.data.id),
-        result
-      );
-      void queryClient.invalidateQueries({
-        queryKey: routeLensQueryKeys.journeys()
-      });
-    }
-  });
-
-  const regenerateSceneVersion = (
-    sceneId: string,
-    prompt: string
-  ): Promise<ApiResult<JourneyDetail>> =>
-    regenerateMutation.mutateAsync({ sceneId, prompt });
-
+function SceneGallery({ scenes }: SceneGalleryProps) {
   return (
     <div className="grid grid-cols-3 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
-      {journey.scenes
+      {scenes
         .toSorted((left, right) => left.order - right.order)
         .map((scene) => (
-          <SceneCard
-            isRegenerationBusy={regenerateMutation.isPending}
-            key={scene.id}
-            scene={scene}
-            onRegenerateScene={regenerateSceneVersion}
-          />
+          <SceneCard key={scene.id} scene={scene} />
         ))}
     </div>
   );
 }
 
 interface SceneCardProps {
-  isRegenerationBusy: boolean;
   scene: JourneyScene;
-  onRegenerateScene: (
-    sceneId: string,
-    prompt: string
-  ) => Promise<ApiResult<JourneyDetail>>;
 }
 
-function SceneCard({
-  isRegenerationBusy,
-  onRegenerateScene,
-  scene
-}: SceneCardProps) {
+function SceneCard({ scene }: SceneCardProps) {
   const activePrompt = scene.activeImage?.prompt ?? "";
-  const [draftPrompt, setDraftPrompt] = useState(activePrompt);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-
-  const startEditing = () => {
-    setDraftPrompt(activePrompt);
-    setErrorMessage(null);
-    setIsEditing(true);
-  };
-
-  const cancelEditing = () => {
-    setDraftPrompt(activePrompt);
-    setErrorMessage(null);
-    setIsEditing(false);
-  };
-
-  const submitRegeneration = async (
-    event: FormEvent<HTMLFormElement>
-  ): Promise<void> => {
-    event.preventDefault();
-
-    const prompt = draftPrompt.trim();
-
-    if (!prompt) {
-      setErrorMessage("Prompt must not be empty.");
-      return;
-    }
-
-    setErrorMessage(null);
-    const result = await onRegenerateScene(scene.id, prompt);
-
-    if (result.ok) {
-      setIsEditing(false);
-      return;
-    }
-
-    setErrorMessage(result.message);
-  };
 
   return (
     <article className="grid min-h-0 gap-3 border border-[#17211c21] bg-[#fffdf6] p-3">
@@ -316,63 +268,9 @@ function SceneCard({
         )}
       </div>
 
-      {isEditing ? (
-        <form
-          className="grid gap-2 border border-[#17211c21] bg-[#f7f3e8] p-3"
-          onSubmit={(event) => {
-            void submitRegeneration(event);
-          }}
-        >
-          <label className="grid gap-2">
-            <span className="font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
-              Prompt
-            </span>
-            <textarea
-              className="min-h-[132px] resize-y border border-[#17211c29] bg-[#fffdf6] p-3 text-[0.86rem] leading-[1.45] text-[#17211c] outline-none focus:border-[#216c2f]"
-              value={draftPrompt}
-              onChange={(event) => setDraftPrompt(event.target.value)}
-            />
-          </label>
-
-          {errorMessage ? (
-            <p className="m-0 text-sm leading-[1.4] text-[#9a412a]">
-              {errorMessage}
-            </p>
-          ) : null}
-
-          <div className="grid grid-cols-[92px_1fr] gap-2">
-            <button
-              className="min-h-10 border border-[#17211c29] bg-[#fffdf6] px-3 font-mono text-[0.68rem] font-bold text-[#24352b] uppercase disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isRegenerationBusy}
-              type="button"
-              onClick={cancelEditing}
-            >
-              Cancel
-            </button>
-            <button
-              className="min-h-10 border border-[#216c2f] bg-[#eef4df] px-3 font-mono text-[0.68rem] font-bold text-[#216c2f] uppercase disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isRegenerationBusy || !draftPrompt.trim()}
-              type="submit"
-            >
-              {isRegenerationBusy ? "Generating..." : "Generate new version"}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="grid gap-2">
-          <p className="m-0 line-clamp-4 text-[0.86rem] leading-[1.45] text-[#405047]">
-            {activePrompt || "Prompt pending."}
-          </p>
-          <button
-            className="justify-self-start border border-[#216c2f40] bg-[#eef4df] px-3 py-2 font-mono text-[0.68rem] font-bold text-[#216c2f] uppercase disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isRegenerationBusy || !scene.activeImage}
-            type="button"
-            onClick={startEditing}
-          >
-            Regenerate
-          </button>
-        </div>
-      )}
+      <p className="m-0 line-clamp-4 text-[0.86rem] leading-[1.45] text-[#405047]">
+        {activePrompt || "Prompt pending."}
+      </p>
 
       <SceneImageHistory
         activeImageId={scene.activeImage?.id ?? null}
