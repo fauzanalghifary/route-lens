@@ -33,3 +33,36 @@ export interface JourneySummary {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface SceneImage {
+  id: string;
+  prompt: string;
+  imageUrl: string | null;
+  storageKey: string | null;
+  status: string;
+  errorCode: string | null;
+  errorMessage: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JourneyScene {
+  id: string;
+  label: "departure" | "midway" | "arrival";
+  order: number;
+  lat: number;
+  lng: number;
+  placeLabel: string | null;
+  activeImage: SceneImage | null;
+  images: SceneImage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JourneyDetail extends JourneySummary {
+  routeGeojson: unknown;
+  errorCode: string | null;
+  errorMessage: string | null;
+  scenes: JourneyScene[];
+}

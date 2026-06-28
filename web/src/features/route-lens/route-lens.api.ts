@@ -1,11 +1,13 @@
 import type {
   CreateJourneyRequest,
   HealthResponse,
+  JourneyDetail,
   JourneySummary
 } from "./route-lens.types";
 
 export const routeLensQueryKeys = {
   health: () => ["route-lens", "health"] as const,
+  journey: (journeyId: string) => ["route-lens", "journey", journeyId] as const,
   journeys: () => ["route-lens", "journeys"] as const
 };
 
@@ -37,10 +39,16 @@ export function listJourneys(): Promise<ApiResult<JourneySummary[]>> {
   return fetchJson<JourneySummary[]>("/journeys");
 }
 
+export function getJourney(
+  journeyId: string
+): Promise<ApiResult<JourneyDetail>> {
+  return fetchJson<JourneyDetail>(`/journeys/${journeyId}`);
+}
+
 export function createJourney(
   request: CreateJourneyRequest
-): Promise<ApiResult<JourneySummary>> {
-  return fetchJson<JourneySummary>("/journeys", {
+): Promise<ApiResult<JourneyDetail>> {
+  return fetchJson<JourneyDetail>("/journeys", {
     method: "POST",
     body: JSON.stringify(request),
     headers: {
@@ -49,7 +57,7 @@ export function createJourney(
   });
 }
 
-export function createSampleJourney(): Promise<ApiResult<JourneySummary>> {
+export function createSampleJourney(): Promise<ApiResult<JourneyDetail>> {
   return createJourney(sampleJourneyRequest);
 }
 
