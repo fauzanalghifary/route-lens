@@ -1,0 +1,60 @@
+name: API CI
+
+on:
+  pull_request:
+    paths:
+      - "api/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/api-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/api-ci.yml"
+
+jobs:
+  api:
+    name: Test, lint, and build API
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/route_lens
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Prisma schema
+        run: pnpm api:prisma:validate
+
+      - name: Generate Prisma client
+        run: pnpm api:prisma:generate
+
+      - name: Run API tests
+        run: pnpm api:test
+
+      - name: Lint API
+        run: pnpm api:lint
+
+      - name: Build API
+        run: pnpm api:build
