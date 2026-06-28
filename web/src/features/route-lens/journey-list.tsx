@@ -6,14 +6,19 @@ interface JourneyListProps {
 
 export function JourneyList({ journeys }: JourneyListProps) {
   return (
-    <ul className="journey-list">
+    <ul className="m-0 grid list-none gap-2.5 p-0">
       {journeys.map((journey) => (
-        <li className="journey-item" key={journey.id}>
-          <div className="journey-title">
+        <li
+          className="grid gap-1.5 border border-[#20231f1f] bg-[#fffdf8] p-3.5"
+          key={journey.id}
+        >
+          <div className="flex items-center justify-between gap-3 font-extrabold max-sm:flex-col max-sm:items-start">
             <span>{formatStyle(journey.style)}</span>
-            <span className="status-pill">{journey.status}</span>
+            <span className="inline-flex min-w-[88px] justify-center bg-[#e8eee9] px-2.5 py-1.5 font-mono text-[0.78rem] font-extrabold text-[#315f54] uppercase">
+              {journey.status}
+            </span>
           </div>
-          <div className="journey-meta">
+          <div className="text-sm text-[#666c65]">
             {journey.completedImages}/{journey.totalImages} images ·{" "}
             {formatCoordinate(journey.origin)} to{" "}
             {formatCoordinate(journey.destination)}

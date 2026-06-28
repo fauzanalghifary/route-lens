@@ -124,8 +124,11 @@ export function RouteMap({ destination, origin, onPick }: RouteMapProps) {
   }, [destination, origin]);
 
   return (
-    <div className="route-map-shell">
-      <div ref={containerRef} className="route-map" />
+    <div className="h-full min-h-[620px] w-full overflow-hidden bg-[#d9e6df] max-sm:min-h-[100svh]">
+      <div
+        ref={containerRef}
+        className="h-full min-h-[620px] w-full max-sm:min-h-[100svh]"
+      />
     </div>
   );
 }
@@ -210,7 +213,8 @@ function createRoutePreview(
 
 function createMarkerElement(variant: "destination" | "origin") {
   const element = document.createElement("div");
-  element.className = `route-marker route-marker-${variant}`;
+  element.className =
+    variant === "origin" ? originMarkerClassName : destinationMarkerClassName;
   element.setAttribute(
     "aria-label",
     variant === "origin" ? "Origin" : "Destination"
@@ -222,3 +226,10 @@ function removeMarker(markerRef: MutableRefObject<maplibregl.Marker | null>) {
   markerRef.current?.remove();
   markerRef.current = null;
 }
+
+const markerBaseClassName =
+  "h-[22px] w-[22px] rotate-[-45deg] rounded-[999px_999px_999px_2px] border-3 border-[#fffdf6] shadow-[0_10px_24px_rgba(32,35,31,0.3)]";
+
+const originMarkerClassName = `${markerBaseClassName} bg-[#315f54]`;
+
+const destinationMarkerClassName = `${markerBaseClassName} bg-[#cf624a]`;
