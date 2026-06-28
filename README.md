@@ -73,6 +73,12 @@ Validate the Prisma schema:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/route_lens" pnpm api:prisma:validate
 ```
 
+Create a development migration:
+
+```bash
+pnpm api:prisma:migrate --name init
+```
+
 The initial API exposes:
 
 ```text
