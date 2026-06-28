@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { savePendingJourneyRequest } from "./pending-journey-storage";
-import { ROUTE_STYLE_PRESETS, SCENE_COUNT } from "@/lib/route-lens/constants";
+import { ROUTE_STYLE_PRESETS } from "@/lib/route-lens/constants";
 import type { Coordinate, RouteStyle } from "@/lib/route-lens/types";
 
 const RouteMap = dynamic(
@@ -206,51 +206,25 @@ export default function Home() {
 
         {isReady ? (
           <aside
-            className="absolute top-[18px] right-[18px] bottom-[18px] z-20 flex w-[min(390px,calc(100vw-36px))] flex-col gap-4 border border-[#17211c21] bg-[#fffdf6] p-5 shadow-[-18px_0_50px_-24px_rgba(23,33,28,0.42)] max-sm:top-auto max-sm:right-3 max-sm:bottom-3 max-sm:left-3 max-sm:max-h-[min(78vh,560px)] max-sm:w-auto max-sm:overflow-auto max-sm:p-4"
+            className="absolute top-[18px] right-[18px] bottom-[18px] z-20 flex w-[min(390px,calc(100vw-36px))] flex-col gap-6 border border-[#17211c21] bg-[#fffdf6] p-6 shadow-[-18px_0_50px_-24px_rgba(23,33,28,0.42)] max-sm:top-auto max-sm:right-3 max-sm:bottom-3 max-sm:left-3 max-sm:max-h-[min(78vh,560px)] max-sm:w-auto max-sm:overflow-auto max-sm:p-4"
             aria-label="Journey confirmation"
           >
-            <div className="grid gap-1">
-              <p className={`${eyebrowClassName} mb-0`}>Review route</p>
-              <h2 className="m-0 text-[1.6rem] leading-[1.05] font-medium">
-                Ready to generate
-              </h2>
+            <div className="grid">
+              <p className={`${eyebrowClassName} -mb-2.5! text-[1.44rem]`}>Review route</p>
             </div>
 
-            <div className="grid gap-[7px]">
-              <span className={panelLabelClassName}>Origin</span>
-              <strong className="text-base leading-[1.45] font-medium text-[#17211c]">
-                {selection.origin
-                  ? formatCoordinate(selection.origin)
-                  : "Not selected"}
-              </strong>
-            </div>
-
-            <div className="grid gap-[7px]">
-              <span className={panelLabelClassName}>Destination</span>
-              <strong className="text-base leading-[1.45] font-medium text-[#17211c]">
-                {selection.destination
-                  ? formatCoordinate(selection.destination)
-                  : "Not selected"}
-              </strong>
-            </div>
-
-            <div className="grid gap-[7px]">
-              <span className={panelLabelClassName}>Scenes</span>
-              <strong className="text-base leading-[1.45] font-medium text-[#17211c]">
-                {SCENE_COUNT} fixed scenes
-              </strong>
-            </div>
-
-            <div className="grid gap-[7px]">
-              <span className={panelLabelClassName}>Style</span>
-              <div className="grid grid-cols-1 gap-2">
+            <div className="grid gap-3">
+              <p className="m-0 text-sm leading-[1.45] text-[#5a6a60]">
+                Choose a visual style for the generated scenes.
+              </p>
+              <div className="grid grid-cols-1 gap-2.5">
                 {ROUTE_STYLE_PRESETS.map((preset) => (
                   <button
                     key={preset.value}
                     className={
                       preset.value === style
-                        ? "min-h-10 border border-[#216c2f] bg-[#eef4df] px-3 text-left font-mono text-[0.72rem] font-bold text-[#216c2f] uppercase"
-                        : "min-h-10 border border-[#17211c21] bg-[#fffdf6] px-3 text-left font-mono text-[0.72rem] font-bold text-[#24352b] uppercase"
+                        ? "min-h-[54px] border-2 border-[#216c2f] bg-[#eef4df] px-4 text-left font-mono text-[0.78rem] font-bold text-[#216c2f] uppercase shadow-[0_12px_24px_-18px_rgba(33,108,47,0.55)]"
+                        : "min-h-[54px] border border-[#17211c21] bg-[#fffdf6] px-4 text-left font-mono text-[0.78rem] font-bold text-[#24352b] uppercase hover:border-[#17211c66] hover:bg-[#f7f3e8]"
                     }
                     type="button"
                     onClick={() => handleStyleChange(preset.value)}
@@ -258,6 +232,20 @@ export default function Home() {
                     {preset.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className="grid gap-3 border-t border-[#17211c14] pt-4">
+              <span className={panelLabelClassName}>Route points</span>
+              <div className="grid gap-2">
+                <CoordinateSummary
+                  coordinate={selection.origin}
+                  label="Origin"
+                />
+                <CoordinateSummary
+                  coordinate={selection.destination}
+                  label="Destination"
+                />
               </div>
             </div>
 
@@ -291,6 +279,24 @@ export default function Home() {
   );
 }
 
-function formatCoordinate(coordinate: Coordinate) {
+interface CoordinateSummaryProps {
+  coordinate: Coordinate | null;
+  label: "Destination" | "Origin";
+}
+
+function CoordinateSummary({ coordinate, label }: CoordinateSummaryProps) {
+  return (
+    <div className="grid grid-cols-[86px_1fr] items-baseline gap-3 text-sm">
+      <span className="font-mono text-[0.66rem] font-bold tracking-normal text-[#5a6a60] uppercase">
+        {label}
+      </span>
+      <span className="font-mono text-[0.76rem] font-bold text-[#24352b]">
+        {coordinate ? formatCoordinate(coordinate) : "Not selected"}
+      </span>
+    </div>
+  );
+}
+
+function formatCoordinate(coordinate: Coordinate): string {
   return `${coordinate.lat.toFixed(4)}, ${coordinate.lng.toFixed(4)}`;
 }
