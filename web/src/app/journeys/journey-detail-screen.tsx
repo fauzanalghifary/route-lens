@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useState, type FormEvent } from "react";
 import { regenerateJourney, routeLensQueryKeys } from "@/lib/route-lens/api";
 import type {
   CreateJourneyRequest,
@@ -33,18 +34,22 @@ interface JourneyDetailScreenProps {
 export function JourneyDetailScreen({
   errorMessage,
   journey,
-  pendingRequest,
   status
 }: JourneyDetailScreenProps) {
   const isLoading = status === "loading";
   const queryClient = useQueryClient();
+  const [additionalPrompt, setAdditionalPrompt] = useState("");
   const regenerateJourneyMutation = useMutation({
-    mutationFn: (journeyId: string) => regenerateJourney(journeyId),
+    mutationFn: (variables: RegenerateJourneyVariables) =>
+      regenerateJourney(variables.journeyId, {
+        additionalPrompt: variables.additionalPrompt
+      }),
     onSuccess: (result) => {
       if (!result.ok) {
         return;
       }
 
+      setAdditionalPrompt("");
       queryClient.setQueryData(
         routeLensQueryKeys.journey(result.data.id),
         result
@@ -58,6 +63,24 @@ export function JourneyDetailScreen({
     regenerateJourneyMutation.data?.ok === false
       ? regenerateJourneyMutation.data.message
       : null;
+  const submitRegeneration = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!journey) {
+      return;
+    }
+
+    const trimmedPrompt = additionalPrompt.trim();
+
+    if (!trimmedPrompt) {
+      return;
+    }
+
+    regenerateJourneyMutation.mutate({
+      additionalPrompt: trimmedPrompt,
+      journeyId: journey.id
+    });
+  };
 
   return (
     <main className="min-h-screen bg-[#f4f1e8] text-[#17211c]">
@@ -94,7 +117,7 @@ export function JourneyDetailScreen({
       </header>
 
       <div className="mx-auto grid w-[min(1180px,calc(100%-32px))] gap-8 py-8">
-        <section className="grid grid-cols-[minmax(0,1fr)_360px] gap-6 max-lg:grid-cols-1">
+        <section>
           <div>
             <p className="m-0 mb-2 font-mono text-[0.72rem] font-bold tracking-normal text-[#5a6a60] uppercase">
               {isLoading ? "Generating journey" : "Generated journey"}
@@ -109,45 +132,6 @@ export function JourneyDetailScreen({
               These are visual impressions, not exact real-world street views.
             </p>
           </div>
-
-          <aside className="grid gap-3 border border-[#17211c21] bg-[#fffdf6] p-4">
-            <SummaryRow
-              label="Status"
-              value={journey?.status ?? (isLoading ? "creating" : "error")}
-            />
-            <SummaryRow
-              label="Origin"
-              value={formatCoordinate(
-                journey?.origin ?? pendingRequest?.origin
-              )}
-            />
-            <SummaryRow
-              label="Destination"
-              value={formatCoordinate(
-                journey?.destination ?? pendingRequest?.destination
-              )}
-            />
-            <SummaryRow
-              label="Images"
-              value={
-                journey
-                  ? `${journey.completedImages}/${journey.totalImages} ready`
-                  : "Starting"
-              }
-            />
-            {journey ? (
-              <button
-                className="mt-1 min-h-10 border border-[#216c2f] bg-[#eef4df] px-3 font-mono text-[0.68rem] font-bold text-[#216c2f] uppercase disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={regenerateJourneyMutation.isPending}
-                type="button"
-                onClick={() => regenerateJourneyMutation.mutate(journey.id)}
-              >
-                {regenerateJourneyMutation.isPending
-                  ? "Regenerating..."
-                  : "Regenerate all scenes"}
-              </button>
-            ) : null}
-          </aside>
         </section>
 
         {status === "error" ? (
@@ -156,42 +140,56 @@ export function JourneyDetailScreen({
           </section>
         ) : null}
 
-        {regenerationError ? (
-          <section className="border border-[#a23a2540] bg-[#f7e3dc] p-4 text-[#9a412a]">
-            {regenerationError}
-          </section>
-        ) : null}
-
         {journey ? (
           <section className="grid gap-6">
-            <div className="grid grid-cols-[420px_minmax(0,1fr)] gap-6 max-lg:grid-cols-1">
+            <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-6 max-lg:grid-cols-1">
               <JourneyStaticMap journey={journey} />
-              <div className="grid gap-2 border border-[#17211c21] bg-[#fffdf6] p-4">
-                {journey.scenes
-                  .toSorted((left, right) => left.order - right.order)
-                  .map((scene) => (
-                    <div
-                      className="flex items-center justify-between gap-3 border-b border-[#17211c14] pb-2 last:border-b-0 last:pb-0"
-                      key={scene.id}
-                    >
-                      <span className="font-mono text-[0.7rem] font-bold text-[#5a6a60] uppercase">
-                        {scene.order}. {formatSceneLabel(scene.label)}
-                      </span>
-                      <span className="text-sm text-[#405047]">
-                        {formatCoordinate(scene)}
-                      </span>
-                    </div>
-                  ))}
-              </div>
+              <JourneyRouteSummary journey={journey} />
             </div>
 
             <SceneGallery scenes={journey.scenes} />
+            <RegenerateJourneyPanel
+              additionalPrompt={additionalPrompt}
+              errorMessage={regenerationError}
+              isPending={regenerateJourneyMutation.isPending}
+              onAdditionalPromptChange={setAdditionalPrompt}
+              onSubmit={submitRegeneration}
+            />
           </section>
         ) : (
           <LoadingGallery />
         )}
       </div>
     </main>
+  );
+}
+
+interface RegenerateJourneyVariables {
+  additionalPrompt: string;
+  journeyId: string;
+}
+
+interface JourneyRouteSummaryProps {
+  journey: JourneyDetail;
+}
+
+function JourneyRouteSummary({ journey }: JourneyRouteSummaryProps) {
+  return (
+    <aside className="grid content-start gap-5 border border-[#17211c21] bg-[#fffdf6] p-5">
+      <div className="border-b border-[#17211c14] pb-4">
+        <span className="font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
+          Status
+        </span>
+        <strong className="mt-1 block text-[2.15rem] leading-none font-medium text-[#216c2f]">
+          {journey.status}
+        </strong>
+      </div>
+      <SummaryRow label="Origin" value={formatCoordinate(journey.origin)} />
+      <SummaryRow
+        label="Destination"
+        value={formatCoordinate(journey.destination)}
+      />
+    </aside>
   );
 }
 
@@ -210,6 +208,66 @@ function SummaryRow({ label, value }: SummaryRowProps) {
         {value}
       </strong>
     </div>
+  );
+}
+
+interface RegenerateJourneyPanelProps {
+  additionalPrompt: string;
+  errorMessage: string | null;
+  isPending: boolean;
+  onAdditionalPromptChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}
+
+function RegenerateJourneyPanel({
+  additionalPrompt,
+  errorMessage,
+  isPending,
+  onAdditionalPromptChange,
+  onSubmit
+}: RegenerateJourneyPanelProps) {
+  const canSubmit = additionalPrompt.trim().length > 0 && !isPending;
+
+  return (
+    <form
+      className="grid gap-4 border border-[#17211c21] bg-[#fffdf6] p-4"
+      onSubmit={onSubmit}
+    >
+      <div className="grid gap-1">
+        <p className="m-0 font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
+          Regenerate latest generation
+        </p>
+        <p className="m-0 max-w-[72ch] text-[0.9rem] leading-[1.45] text-[#405047]">
+          Add a short direction. RouteLens keeps the original scene prompts and
+          appends your note to all three scenes.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_190px] gap-3 max-sm:grid-cols-1">
+        <input
+          className="min-h-11 border border-[#17211c29] bg-[#fffdf6] px-3 text-base text-[#17211c] outline-none focus:border-[#216c2f] disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isPending}
+          maxLength={500}
+          placeholder="make it rainy"
+          type="text"
+          value={additionalPrompt}
+          onChange={(event) => onAdditionalPromptChange(event.target.value)}
+        />
+        <button
+          className="min-h-11 border border-[#216c2f] bg-[#eef4df] px-4 font-mono text-[0.72rem] font-bold text-[#216c2f] uppercase disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={!canSubmit}
+          type="submit"
+        >
+          {isPending ? "Regenerating..." : "Regenerate"}
+        </button>
+      </div>
+
+      {errorMessage ? (
+        <p className="m-0 border border-[#a23a2540] bg-[#f7e3dc] px-3 py-2 text-sm text-[#9a412a]">
+          {errorMessage}
+        </p>
+      ) : null}
+    </form>
   );
 }
 
@@ -287,17 +345,19 @@ interface SceneImageHistoryProps {
 
 function SceneImageHistory({ activeImageId, images }: SceneImageHistoryProps) {
   return (
-    <div className="grid gap-2 border-t border-[#17211c14] pt-3">
-      <div className="flex items-center justify-between gap-3">
-        <span className="font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
-          Image history
+    <details className="border-t border-[#17211c14] pt-3">
+      <summary className="cursor-pointer list-none">
+        <span className="flex items-center justify-between gap-3">
+          <span className="font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
+            Image history
+          </span>
+          <span className="font-mono text-[0.64rem] font-bold text-[#405047] uppercase">
+            {images.length} {images.length === 1 ? "version" : "versions"}
+          </span>
         </span>
-        <span className="font-mono text-[0.64rem] font-bold text-[#405047] uppercase">
-          {images.length} {images.length === 1 ? "version" : "versions"}
-        </span>
-      </div>
+      </summary>
 
-      <div className="grid gap-2">
+      <div className="mt-2 grid gap-2">
         {images
           .toSorted((left, right) => right.version - left.version)
           .map((image) => (
@@ -319,7 +379,7 @@ function SceneImageHistory({ activeImageId, images }: SceneImageHistoryProps) {
             </div>
           ))}
       </div>
-    </div>
+    </details>
   );
 }
 

@@ -4,6 +4,7 @@ import { JOURNEY_INCLUDE, JourneyWithScenes } from "../journeys/journeys.prisma"
 import { PrismaService } from "../prisma/prisma.service";
 
 interface RegenerateJourneyImagesInput {
+  additionalPrompt: string | null;
   journeyId: string;
   sessionId: string;
 }
@@ -13,6 +14,7 @@ export class ScenesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async regenerateJourneyImages({
+    additionalPrompt,
     journeyId,
     sessionId
   }: RegenerateJourneyImagesInput): Promise<JourneyWithScenes | null> {
@@ -46,9 +48,12 @@ export class ScenesRepository {
 
       for (const scene of journey.scenes) {
         const nextVersion = (scene.images[0]?.version ?? 0) + 1;
-        const prompt =
+        const basePrompt =
           scene.activeImage?.prompt ??
           `AI-generated ${scene.label} scene inspired by the geography along the route.`;
+        const prompt = additionalPrompt
+          ? appendAdditionalPrompt(basePrompt, additionalPrompt)
+          : basePrompt;
         const image = await tx.sceneImage.create({
           data: {
             sceneId: scene.id,
@@ -81,6 +86,13 @@ export class ScenesRepository {
       });
     });
   }
+}
+
+function appendAdditionalPrompt(
+  basePrompt: string,
+  additionalPrompt: string
+): string {
+  return `${basePrompt}\nAdditional direction: ${additionalPrompt}`;
 }
 
 function buildRegeneratedPlaceholderImageUrl(

@@ -1,7 +1,8 @@
 import type {
   CreateJourneyRequest,
   JourneyDetail,
-  JourneySummary
+  JourneySummary,
+  RegenerateJourneyRequest
 } from "./types";
 
 export const routeLensQueryKeys = {
@@ -52,10 +53,15 @@ export function createJourney(
 }
 
 export function regenerateJourney(
-  journeyId: string
+  journeyId: string,
+  request: RegenerateJourneyRequest
 ): Promise<ApiResult<JourneyDetail>> {
   return fetchJson<JourneyDetail>(`/journeys/${journeyId}/regenerate`, {
-    method: "POST"
+    method: "POST",
+    body: JSON.stringify(request),
+    headers: {
+      "Content-Type": "application/json"
+    }
   });
 }
 
