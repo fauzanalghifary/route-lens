@@ -8,7 +8,6 @@ import { regenerateJourney, routeLensQueryKeys } from "@/lib/route-lens/api";
 import type {
   CreateJourneyRequest,
   JourneyDetail,
-  SceneImage,
   JourneyScene
 } from "@/lib/route-lens/types";
 
@@ -119,18 +118,9 @@ export function JourneyDetailScreen({
       <div className="mx-auto grid w-[min(1180px,calc(100%-32px))] gap-8 py-8">
         <section>
           <div>
-            <p className="m-0 mb-2 font-mono text-[0.72rem] font-bold tracking-normal text-[#5a6a60] uppercase">
+            <h3 className="m-0 mb-2 font-mono text-[1.44rem] font-bold tracking-normal text-[#5a6a60] uppercase">
               {isLoading ? "Generating journey" : "Generated journey"}
-            </p>
-            <h1 className="m-0 max-w-[720px] text-5xl leading-[0.98] font-medium max-sm:text-[2.6rem]">
-              {journey
-                ? `${formatStyle(journey.style)} scenes are ready`
-                : "Preparing your route scenes"}
-            </h1>
-            <p className="mt-4 mb-0 max-w-[68ch] text-[1.02rem] leading-[1.55] text-[#405047]">
-              AI-generated scenes inspired by the geography along your route.
-              These are visual impressions, not exact real-world street views.
-            </p>
+            </h3>
           </div>
         </section>
 
@@ -174,6 +164,11 @@ interface JourneyRouteSummaryProps {
 }
 
 function JourneyRouteSummary({ journey }: JourneyRouteSummaryProps) {
+  const activeVersion = journey.scenes.reduce((max, scene) => {
+    const version = scene.activeImage?.version ?? 0;
+    return version > max ? version : max;
+  }, 0);
+
   return (
     <aside className="grid content-start gap-5 border border-[#17211c21] bg-[#fffdf6] p-5">
       <div className="border-b border-[#17211c14] pb-4">
@@ -183,6 +178,11 @@ function JourneyRouteSummary({ journey }: JourneyRouteSummaryProps) {
         <strong className="mt-1 block text-[2.15rem] leading-none font-medium text-[#216c2f]">
           {journey.status}
         </strong>
+        {activeVersion > 0 ? (
+          <span className="mt-2 inline-block border border-[#216c2f40] bg-[#eef4df] px-2 py-1 font-mono text-[0.62rem] font-bold text-[#216c2f] uppercase">
+            v{activeVersion} active
+          </span>
+        ) : null}
       </div>
       <SummaryRow label="Origin" value={formatCoordinate(journey.origin)} />
       <SummaryRow
@@ -288,24 +288,15 @@ interface SceneCardProps {
 }
 
 function SceneCard({ scene }: SceneCardProps) {
-  const activePrompt = scene.activeImage?.prompt ?? "";
-
   return (
     <article className="grid min-h-0 gap-3 border border-[#17211c21] bg-[#fffdf6] p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="m-0 font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
-            Scene {scene.order}
-          </p>
-          <h2 className="m-0 mt-1 text-[1.18rem] leading-[1.05] font-medium text-[#17211c]">
-            {formatSceneLabel(scene.label)}
-          </h2>
-        </div>
-        <span className="shrink-0 border border-[#216c2f40] bg-[#eef4df] px-2 py-1 font-mono text-[0.62rem] font-bold text-[#216c2f] uppercase">
-          {scene.activeImage
-            ? `v${scene.activeImage.version} active`
-            : "pending"}
-        </span>
+      <div>
+        <p className="m-0 font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
+          Scene {scene.order}
+        </p>
+        <h2 className="m-0 mt-1 text-[1.18rem] leading-[1.05] font-medium text-[#17211c]">
+          {formatSceneLabel(scene.label)}
+        </h2>
       </div>
 
       <div className="aspect-[4/3] overflow-hidden bg-[#d9e6df]">
@@ -321,61 +312,7 @@ function SceneCard({ scene }: SceneCardProps) {
           </div>
         )}
       </div>
-
-      <p className="m-0 line-clamp-4 text-[0.86rem] leading-[1.45] text-[#405047]">
-        {activePrompt || "Prompt pending."}
-      </p>
-
-      <SceneImageHistory
-        activeImageId={scene.activeImage?.id ?? null}
-        images={scene.images}
-      />
     </article>
-  );
-}
-
-interface SceneImageHistoryProps {
-  activeImageId: string | null;
-  images: SceneImage[];
-}
-
-function SceneImageHistory({ activeImageId, images }: SceneImageHistoryProps) {
-  return (
-    <details className="border-t border-[#17211c14] pt-3">
-      <summary className="cursor-pointer list-none">
-        <span className="flex items-center justify-between gap-3">
-          <span className="font-mono text-[0.68rem] font-bold text-[#5a6a60] uppercase">
-            Image history
-          </span>
-          <span className="font-mono text-[0.64rem] font-bold text-[#405047] uppercase">
-            {images.length} {images.length === 1 ? "version" : "versions"}
-          </span>
-        </span>
-      </summary>
-
-      <div className="mt-2 grid gap-2">
-        {images
-          .toSorted((left, right) => right.version - left.version)
-          .map((image) => (
-            <div
-              className="grid gap-1 border border-[#17211c14] bg-[#fffdf6] p-2"
-              key={image.id}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-[0.64rem] font-bold text-[#24352b] uppercase">
-                  Version {image.version}
-                </span>
-                <span className="font-mono text-[0.6rem] font-bold text-[#5a6a60] uppercase">
-                  {image.id === activeImageId ? "active" : image.status}
-                </span>
-              </div>
-              <p className="m-0 line-clamp-2 text-[0.76rem] leading-[1.35] text-[#405047]">
-                {image.prompt}
-              </p>
-            </div>
-          ))}
-      </div>
-    </details>
   );
 }
 
