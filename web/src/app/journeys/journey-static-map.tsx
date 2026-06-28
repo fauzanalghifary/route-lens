@@ -7,7 +7,7 @@ import type {
   Coordinate,
   JourneyDetail,
   JourneyScene
-} from "./route-lens.types";
+} from "@/lib/route-lens/types";
 
 interface JourneyStaticMapProps {
   journey: JourneyDetail;

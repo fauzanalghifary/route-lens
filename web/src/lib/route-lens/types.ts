@@ -1,8 +1,3 @@
-export interface HealthResponse {
-  status: "ok";
-  service: "route-lens-api";
-}
-
 export interface Coordinate {
   lat: number;
   lng: number;

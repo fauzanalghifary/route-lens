@@ -3,7 +3,7 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import type { FeatureCollection, LineString } from "geojson";
 import maplibregl, { type StyleSpecification } from "maplibre-gl";
-import type { Coordinate } from "./route-lens.types";
+import type { Coordinate } from "@/lib/route-lens/types";
 
 interface RouteMapProps {
   destination: Coordinate | null;

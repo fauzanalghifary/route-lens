@@ -6,7 +6,7 @@ import type {
   CreateJourneyRequest,
   JourneyDetail,
   JourneyScene
-} from "./route-lens.types";
+} from "@/lib/route-lens/types";
 
 const JourneyStaticMap = dynamic(
   () => import("./journey-static-map").then((mod) => mod.JourneyStaticMap),

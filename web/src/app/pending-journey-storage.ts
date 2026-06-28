@@ -1,4 +1,4 @@
-import type { CreateJourneyRequest, RouteStyle } from "./route-lens.types";
+import type { CreateJourneyRequest, RouteStyle } from "@/lib/route-lens/types";
 
 const pendingJourneyKeyPrefix = "route-lens:pending-journey:";
 

@@ -1,12 +1,10 @@
 import type {
   CreateJourneyRequest,
-  HealthResponse,
   JourneyDetail,
   JourneySummary
-} from "./route-lens.types";
+} from "./types";
 
 export const routeLensQueryKeys = {
-  health: () => ["route-lens", "health"] as const,
   journey: (journeyId: string) => ["route-lens", "journey", journeyId] as const,
   journeys: () => ["route-lens", "journeys"] as const
 };
@@ -31,10 +29,6 @@ export function normalizeApiBaseUrl(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
-export function getApiHealth(): Promise<ApiResult<HealthResponse>> {
-  return fetchJson<HealthResponse>("/health");
-}
-
 export function listJourneys(): Promise<ApiResult<JourneySummary[]>> {
   return fetchJson<JourneySummary[]>("/journeys");
 }
@@ -56,22 +50,6 @@ export function createJourney(
     }
   });
 }
-
-export function createSampleJourney(): Promise<ApiResult<JourneyDetail>> {
-  return createJourney(sampleJourneyRequest);
-}
-
-const sampleJourneyRequest: CreateJourneyRequest = {
-  origin: {
-    lat: -6.2088,
-    lng: 106.8456
-  },
-  destination: {
-    lat: -6.1754,
-    lng: 106.8272
-  },
-  style: "travel_poster"
-};
 
 async function fetchJson<T>(
   path: string,

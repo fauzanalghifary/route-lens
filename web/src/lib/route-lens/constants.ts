@@ -1,4 +1,4 @@
-import type { RouteStyle } from "./route-lens.types";
+import type { RouteStyle } from "./types";
 
 export const SCENE_COUNT = 3;
 

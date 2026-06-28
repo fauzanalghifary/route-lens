@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeApiBaseUrl, routeLensQueryKeys } from "./route-lens.api";
+import { normalizeApiBaseUrl, routeLensQueryKeys } from "./api";
 
 describe("normalizeApiBaseUrl", () => {
   it("removes trailing slashes", () => {
