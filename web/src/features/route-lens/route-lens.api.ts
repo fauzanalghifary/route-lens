@@ -37,14 +37,20 @@ export function listJourneys(): Promise<ApiResult<JourneySummary[]>> {
   return fetchJson<JourneySummary[]>("/journeys");
 }
 
-export function createSampleJourney(): Promise<ApiResult<JourneySummary>> {
+export function createJourney(
+  request: CreateJourneyRequest
+): Promise<ApiResult<JourneySummary>> {
   return fetchJson<JourneySummary>("/journeys", {
     method: "POST",
-    body: JSON.stringify(sampleJourneyRequest),
+    body: JSON.stringify(request),
     headers: {
       "Content-Type": "application/json"
     }
   });
+}
+
+export function createSampleJourney(): Promise<ApiResult<JourneySummary>> {
+  return createJourney(sampleJourneyRequest);
 }
 
 const sampleJourneyRequest: CreateJourneyRequest = {

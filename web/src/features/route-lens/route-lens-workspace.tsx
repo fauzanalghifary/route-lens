@@ -1,8 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { ROUTE_STYLE_PRESETS, SCENE_COUNT } from "./route-lens.constants";
+import { createJourney, routeLensQueryKeys } from "./route-lens.api";
 import type { Coordinate, RouteStyle } from "./route-lens.types";
 
 const RouteMap = dynamic(
@@ -35,6 +37,7 @@ interface RouteSelection {
 }
 
 export function RouteLensWorkspace() {
+  const queryClient = useQueryClient();
   const [selection, setSelection] = useState<RouteSelection>({
     destination: null,
     origin: null
@@ -42,6 +45,21 @@ export function RouteLensWorkspace() {
   const [isIntroOpen, setIsIntroOpen] = useState(true);
   const [style, setStyle] = useState<RouteStyle>("cinematic");
   const isReady = Boolean(selection.origin && selection.destination);
+  const createJourneyMutation = useMutation({
+    mutationFn: createJourney,
+    onSuccess: async (result) => {
+      if (result.ok) {
+        await queryClient.invalidateQueries({
+          queryKey: routeLensQueryKeys.journeys()
+        });
+      }
+    }
+  });
+  const createJourneyResult = createJourneyMutation.data;
+  const createJourneyError =
+    createJourneyResult?.ok === false ? createJourneyResult.message : null;
+  const createdJourney =
+    createJourneyResult?.ok === true ? createJourneyResult.data : null;
 
   const instructionLabel = useMemo(() => {
     if (!selection.origin) {
@@ -76,11 +94,34 @@ export function RouteLensWorkspace() {
   }, []);
 
   const resetSelection = useCallback(() => {
+    createJourneyMutation.reset();
     setSelection({
       destination: null,
       origin: null
     });
-  }, []);
+  }, [createJourneyMutation]);
+
+  const handleStyleChange = useCallback(
+    (nextStyle: RouteStyle) => {
+      createJourneyMutation.reset();
+      setStyle(nextStyle);
+    },
+    [createJourneyMutation]
+  );
+
+  const generateJourney = useCallback(() => {
+    const { destination, origin } = selection;
+
+    if (!origin || !destination) {
+      return;
+    }
+
+    createJourneyMutation.mutate({
+      origin,
+      destination,
+      style
+    });
+  }, [createJourneyMutation, selection, style]);
 
   return (
     <section
@@ -192,6 +233,13 @@ export function RouteLensWorkspace() {
           </div>
 
           <div className="grid gap-[7px]">
+            <span className={panelLabelClassName}>Scenes</span>
+            <strong className="text-base leading-[1.45] font-medium text-[#17211c]">
+              {SCENE_COUNT} fixed scenes
+            </strong>
+          </div>
+
+          <div className="grid gap-[7px]">
             <span className={panelLabelClassName}>Style</span>
             <div className="grid grid-cols-1 gap-2">
               {ROUTE_STYLE_PRESETS.map((preset) => (
@@ -203,13 +251,26 @@ export function RouteLensWorkspace() {
                       : "min-h-10 border border-[#17211c21] bg-[#fffdf6] px-3 text-left font-mono text-[0.72rem] font-bold text-[#24352b] uppercase"
                   }
                   type="button"
-                  onClick={() => setStyle(preset.value)}
+                  onClick={() => handleStyleChange(preset.value)}
                 >
                   {preset.label}
                 </button>
               ))}
             </div>
           </div>
+
+          {createJourneyError ? (
+            <div className="border border-[#a23a2540] bg-[#f7e3dc] p-3 text-sm leading-[1.45] text-[#9a412a]">
+              {createJourneyError}
+            </div>
+          ) : null}
+
+          {createdJourney ? (
+            <div className="border border-[#216c2f40] bg-[#eef4df] p-3 text-sm leading-[1.45] text-[#216c2f]">
+              Journey saved. {createdJourney.completedImages}/
+              {createdJourney.totalImages} scenes are ready.
+            </div>
+          ) : null}
 
           <div className="mt-auto grid grid-cols-[104px_1fr] gap-2.5 max-sm:grid-cols-1">
             <button
@@ -221,10 +282,13 @@ export function RouteLensWorkspace() {
             </button>
             <button
               className={primaryButtonClassName}
-              disabled={!isReady}
+              disabled={!isReady || createJourneyMutation.isPending}
               type="button"
+              onClick={generateJourney}
             >
-              Generate journey
+              {createJourneyMutation.isPending
+                ? "Creating journey..."
+                : "Generate journey"}
             </button>
           </div>
         </aside>
