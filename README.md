@@ -14,11 +14,12 @@ Current slice:
 
 - `docs/system-design.md` documents the product, architecture, API plan, data model, and trade-offs.
 - `api/` contains the initial NestJS backend scaffold.
+- `api/prisma/schema.prisma` defines the first database model for journeys, scenes, and scene image history.
 
 Not implemented yet:
 
 - Next.js frontend
-- Prisma schema and migrations
+- Prisma migrations and database access
 - anonymous sessions
 - journey APIs
 - Google Routes and Geocoding
@@ -64,6 +65,12 @@ Build the API:
 
 ```bash
 pnpm api:build
+```
+
+Validate the Prisma schema:
+
+```bash
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/route_lens" pnpm api:prisma:validate
 ```
 
 The initial API exposes:

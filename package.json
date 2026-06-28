@@ -6,6 +6,8 @@
   "scripts": {
     "api:build": "pnpm --filter @route-lens/api build",
     "api:start:dev": "pnpm --filter @route-lens/api start:dev",
-    "api:lint": "pnpm --filter @route-lens/api lint"
+    "api:lint": "pnpm --filter @route-lens/api lint",
+    "api:prisma:generate": "pnpm --filter @route-lens/api prisma:generate",
+    "api:prisma:validate": "pnpm --filter @route-lens/api prisma:validate"
   }
 }

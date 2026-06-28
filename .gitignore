@@ -7,3 +7,4 @@ dist/
 .next/
 coverage/
 *.log
+api/src/generated/prisma/

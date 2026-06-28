@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum JourneyStatus {
+  creating_route
+  choosing_scene_points
+  writing_prompts
+  generating_images
+  saving_gallery
+  completed
+  completed_with_errors
+  failed
+}
+
+enum RouteMode {
+  google_routes
+  approximate
+}
+
+enum RouteStyle {
+  cinematic
+  watercolor
+  manga
+  travel_poster
+  concept_art
+}
+
+enum SceneLabel {
+  departure
+  midway
+  arrival
+}
+
+enum SceneImageStatus {
+  pending
+  generating
+  completed
+  failed
+}
+
+model Journey {
+  id             String        @id @default(cuid())
+  sessionId      String
+  originLat      Decimal       @db.Decimal(10, 7)
+  originLng      Decimal       @db.Decimal(10, 7)
+  destinationLat Decimal       @db.Decimal(10, 7)
+  destinationLng Decimal       @db.Decimal(10, 7)
+  routeGeojson   Json?
+  routeMode      RouteMode?
+  style          RouteStyle
+  status         JourneyStatus @default(creating_route)
+  errorCode      String?
+  errorMessage   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  scenes         Scene[]
+
+  @@index([sessionId, createdAt])
+}
+
+model Scene {
+  id            String       @id @default(cuid())
+  journeyId     String
+  label         SceneLabel
+  order         Int
+  lat           Decimal      @db.Decimal(10, 7)
+  lng           Decimal      @db.Decimal(10, 7)
+  placeLabel    String?
+  activeImageId String?      @unique
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  journey       Journey      @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  images        SceneImage[] @relation("SceneImages")
+  activeImage   SceneImage?  @relation("ActiveSceneImage", fields: [activeImageId], references: [id])
+
+  @@unique([journeyId, label])
+  @@index([journeyId, order])
+}
+
+model SceneImage {
+  id             String           @id @default(cuid())
+  sceneId        String
+  prompt         String
+  imageUrl       String?
+  storageKey     String?
+  status         SceneImageStatus @default(pending)
+  errorCode      String?
+  errorMessage   String?
+  version        Int
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  scene          Scene            @relation("SceneImages", fields: [sceneId], references: [id], onDelete: Cascade)
+  activeForScene Scene?           @relation("ActiveSceneImage")
+
+  @@unique([sceneId, version])
+  @@index([sceneId, createdAt])
+}

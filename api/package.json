@@ -6,12 +6,15 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
-    "lint": "eslint \"src/**/*.ts\""
+    "lint": "eslint \"src/**/*.ts\"",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-express": "^11.1.6",
+    "@prisma/client": "^7.8.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
@@ -19,8 +22,10 @@
     "@eslint/js": "^9.31.0",
     "@nestjs/cli": "^11.0.10",
     "@types/node": "^24.0.15",
+    "dotenv": "^17.4.2",
     "eslint": "^9.31.0",
     "globals": "^16.3.0",
+    "prisma": "^7.8.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.37.0"
   }
