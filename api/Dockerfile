@@ -38,6 +38,7 @@ COPY --from=builder /workspace/node_modules ./node_modules
 COPY --from=builder /workspace/api/package.json ./api/package.json
 COPY --from=builder /workspace/api/node_modules ./api/node_modules
 COPY --from=builder /workspace/api/dist ./api/dist
+COPY --from=builder /workspace/api/prisma.config.ts ./api/prisma.config.ts
 COPY --from=builder /workspace/api/prisma ./api/prisma
 
 WORKDIR /workspace/api
